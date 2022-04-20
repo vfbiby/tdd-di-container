@@ -1,30 +1,48 @@
+import jakarta.inject.Inject;
 import jakarta.inject.Provider;
 
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class Context {
-    private final Map<Class<?>, Class<?>> componentImplementations = new HashMap<>();
     private final Map<Class<?>, Provider<?>> providers = new HashMap<>();
 
-    public <ComponentType> void bind(Class<ComponentType> type, ComponentType instance) {
-        providers.put(type, (Provider<ComponentType>) () -> instance);
+    public <Type> void bind(Class<Type> type, Type instance) {
+        providers.put(type, (Provider<Type>) () -> instance);
     }
 
-    public <ComponentType, ComponentImplementation>
-    void bind(Class<ComponentType> type, Class<ComponentImplementation> implementation) {
-        componentImplementations.put(type, implementation);
-        providers.put(type, (Provider<ComponentImplementation>) () -> {
+    public <Type, Implementation extends Type>
+    void bind(Class<Type> type, Class<Implementation> implementation) {
+        providers.put(type, (Provider<Type>) () -> {
             try {
-                return (ComponentImplementation) ((Class<?>) implementation).getConstructor().newInstance();
+                Constructor<Implementation> injectConstructor = getConstructor(implementation);
+                Object[] dependencies = Arrays.stream(injectConstructor.getParameters())
+                        .map(p -> get(p.getType()))
+                        .toArray(Object[]::new);
+                return (Type) injectConstructor.newInstance(dependencies);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         });
     }
 
-    public <ComponentType> ComponentType get(Class<ComponentType> type) {
-        return (ComponentType) providers.get(type).get();
+    private <Type> Constructor<Type> getConstructor(Class<Type> implementation) {
+        Stream<Constructor<?>> injectConstructors = Arrays.stream(implementation.getConstructors())
+                .filter(c -> c.isAnnotationPresent(Inject.class));
+        return (Constructor<Type>) injectConstructors.findFirst().orElseGet(() -> {
+            try {
+                return implementation.getConstructor();
+            } catch (NoSuchMethodException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    public <Type> Type get(Class<Type> type) {
+        return (Type) providers.get(type).get();
     }
 
 }
