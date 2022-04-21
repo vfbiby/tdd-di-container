@@ -58,13 +58,13 @@ public class ContainerTest {
 
                 Component instance = context.get(Component.class);
                 assertNotNull(instance);
-                assertSame(dependency, ((ComponentWithInjectConstructor)instance).getDependency());
+                assertSame(dependency, ((ComponentWithInjectConstructor) instance).getDependency());
             }
 
             // TODO: 2022/4/19 A -> B -> C
             @Test
             @DisplayName("should bind type to a class with transitive_dependencies")
-            public void should_bind_type_to_a_class_with_transitive_dependencies(){
+            public void should_bind_type_to_a_class_with_transitive_dependencies() {
                 context.bind(Component.class, ComponentWithInjectConstructor.class);
                 context.bind(Dependency.class, DependencyWithInjectConstructor.class);
                 context.bind(String.class, "indirect dependency");
@@ -77,6 +77,26 @@ public class ContainerTest {
 
                 assertEquals("indirect dependency", ((DependencyWithInjectConstructor) dependency).getDependency());
             }
+
+            // TODO: 2022/4/21 multi inject constructors
+            @Test
+            @DisplayName("should throw exception if multi inject constructors provided")
+            public void should_throw_exception_if_multi_inject_constructors_provided() {
+                assertThrows(IllegalComponentException.class, () -> {
+                    context.bind(Component.class, ComponentWithMultiInjectConstructors.class);
+                });
+            }
+
+            // TODO: 2022/4/21 no default constructor and inject constructor
+            @Test
+            @DisplayName("should throw exception if no inject nor default constructor provided")
+            public void should_throw_exception_if_no_inject_nor_default_constructor_provided(){
+                assertThrows(IllegalComponentException.class, () -> {
+                    context.bind(Component.class, ComponentWithNoInjectConstructorNorDefaultConstructor.class);
+                });
+            }
+
+            // TODO: 2022/4/21 dependencies not exist
 
         }
 
@@ -125,7 +145,7 @@ class ComponentWithInjectConstructor implements Component {
     }
 }
 
-class DependencyWithInjectConstructor implements Dependency{
+class DependencyWithInjectConstructor implements Dependency {
 
     @Inject
     public DependencyWithInjectConstructor(String dependency) {
@@ -137,4 +157,18 @@ class DependencyWithInjectConstructor implements Dependency{
     }
 
     private String dependency;
+}
+
+class ComponentWithMultiInjectConstructors implements Component {
+    @Inject
+    public ComponentWithMultiInjectConstructors(String name) {
+    }
+
+    @Inject
+    public ComponentWithMultiInjectConstructors(String name, double value) {
+    }
+}
+class ComponentWithNoInjectConstructorNorDefaultConstructor implements Component{
+    public ComponentWithNoInjectConstructorNorDefaultConstructor(String name) {
+    }
 }
