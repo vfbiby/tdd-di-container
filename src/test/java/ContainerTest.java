@@ -85,6 +85,10 @@ public class ContainerTest {
                 assertThrows(IllegalComponentException.class, () -> {
                     context.bind(Component.class, ComponentWithMultiInjectConstructors.class);
                 });
+//                context.bind(Component.class, ComponentWithMultiInjectConstructors.class);
+//                assertThrows(IllegalComponentException.class, () -> {
+//                    context.get(Component.class);
+//                });
             }
 
             // TODO: 2022/4/21 no default constructor and inject constructor
