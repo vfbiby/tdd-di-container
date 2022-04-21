@@ -36,7 +36,7 @@ public class ContainerTest {
         // TODO: 2022/4/19 interface
         // component does not exist
         @Test
-        public void should_return_empty_if_component_not_found(){
+        public void should_return_empty_if_component_not_found() {
             Optional<Component> component = context.get(Component.class);
             assertTrue(component.isEmpty());
         }
@@ -119,6 +119,16 @@ public class ContainerTest {
                 });
             }
 
+            // cycle dependencies
+            @Test
+            @DisplayName("should throw exception if cyclic dependencies found")
+            public void should_throw_exception_if_cyclic_dependencies_found() {
+                context.bind(Component.class, ComponentWithInjectConstructor.class);
+                context.bind(Dependency.class, DependencyDependedOnComponent.class);
+
+                assertThrows(CyclicDependencyIsFound.class, () -> context.get(Component.class));
+            }
+
         }
 
         @Nested
@@ -193,4 +203,16 @@ class ComponentWithMultiInjectConstructors implements Component {
 class ComponentWithNoInjectConstructorNorDefaultConstructor implements Component {
     public ComponentWithNoInjectConstructorNorDefaultConstructor(String name) {
     }
+}
+
+class DependencyDependedOnComponent implements Dependency {
+    public Component getComponent() {
+        return component;
+    }
+
+    public DependencyDependedOnComponent(Component component) {
+        this.component = component;
+    }
+
+    private Component component;
 }
