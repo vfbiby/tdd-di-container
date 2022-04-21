@@ -4,6 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ContainerTest {
@@ -26,27 +28,34 @@ public class ContainerTest {
             //When
             context.bind(Component.class, instance);
             //Then
-            assertSame(instance, context.get(Component.class));
+            assertSame(instance, context.get(Component.class).get());
         }
 
 
         // TODO: 2022/4/19 abstract class
         // TODO: 2022/4/19 interface
+        // component does not exist
+        @Test
+        public void should_return_empty_if_component_not_found(){
+            Optional<Component> component = context.get(Component.class);
+            assertTrue(component.isEmpty());
+        }
+
         @Nested
         public class ConstructorInjectionTest {
-            // TODO: 2022/4/19 No args constructor
+            // No args constructor
             @Test
             @DisplayName("should bind type to a class with default constructor")
             public void should_bind_type_to_a_class_with_default_constructor() {
                 //When
                 context.bind(Component.class, ComponentWithDefaultConstructor.class);
-                Component instance = context.get(Component.class);
+                Component instance = context.get(Component.class).get();
                 //Then
                 assertNotNull(instance);
                 assertTrue(instance instanceof ComponentWithDefaultConstructor);
             }
 
-            // TODO: 2022/4/19 with dependencies
+            // with dependencies
             @Test
             @DisplayName("should bind type to a class with inject constructor")
             public void should_bind_type_to_a_class_with_inject_constructor() {
@@ -56,12 +65,12 @@ public class ContainerTest {
                 context.bind(Component.class, ComponentWithInjectConstructor.class);
                 context.bind(Dependency.class, dependency);
 
-                Component instance = context.get(Component.class);
+                Component instance = context.get(Component.class).get();
                 assertNotNull(instance);
                 assertSame(dependency, ((ComponentWithInjectConstructor) instance).getDependency());
             }
 
-            // TODO: 2022/4/19 A -> B -> C
+            // A -> B -> C
             @Test
             @DisplayName("should bind type to a class with transitive_dependencies")
             public void should_bind_type_to_a_class_with_transitive_dependencies() {
@@ -69,7 +78,7 @@ public class ContainerTest {
                 context.bind(Dependency.class, DependencyWithInjectConstructor.class);
                 context.bind(String.class, "indirect dependency");
 
-                Component instance = context.get(Component.class);
+                Component instance = context.get(Component.class).get();
                 assertNotNull(instance);
 
                 Dependency dependency = ((ComponentWithInjectConstructor) instance).getDependency();
@@ -78,7 +87,7 @@ public class ContainerTest {
                 assertEquals("indirect dependency", ((DependencyWithInjectConstructor) dependency).getDependency());
             }
 
-            // TODO: 2022/4/21 multi inject constructors
+            // multi inject constructors
             @Test
             @DisplayName("should throw exception if multi inject constructors provided")
             public void should_throw_exception_if_multi_inject_constructors_provided() {
@@ -91,16 +100,24 @@ public class ContainerTest {
 //                });
             }
 
-            // TODO: 2022/4/21 no default constructor and inject constructor
+            // no default constructor and inject constructor
             @Test
             @DisplayName("should throw exception if no inject nor default constructor provided")
-            public void should_throw_exception_if_no_inject_nor_default_constructor_provided(){
+            public void should_throw_exception_if_no_inject_nor_default_constructor_provided() {
                 assertThrows(IllegalComponentException.class, () -> {
                     context.bind(Component.class, ComponentWithNoInjectConstructorNorDefaultConstructor.class);
                 });
             }
 
-            // TODO: 2022/4/21 dependencies not exist
+            // dependencies not exist
+            @Test
+            @DisplayName("should throw exception if dependency not found")
+            public void should_throw_exception_if_dependency_not_found() {
+                context.bind(Component.class, ComponentWithInjectConstructor.class);
+                assertThrows(DependencyNotFoundException.class, () -> {
+                    context.get(Component.class);
+                });
+            }
 
         }
 
@@ -172,7 +189,8 @@ class ComponentWithMultiInjectConstructors implements Component {
     public ComponentWithMultiInjectConstructors(String name, double value) {
     }
 }
-class ComponentWithNoInjectConstructorNorDefaultConstructor implements Component{
+
+class ComponentWithNoInjectConstructorNorDefaultConstructor implements Component {
     public ComponentWithNoInjectConstructorNorDefaultConstructor(String name) {
     }
 }
