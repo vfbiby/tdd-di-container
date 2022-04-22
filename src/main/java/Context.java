@@ -21,16 +21,43 @@ public class Context {
     public <Type, Implementation extends Type>
     void bind(Class<Type> type, Class<Implementation> implementation) {
         Constructor<Implementation> injectConstructor = getInjectConstructor(implementation);
-        providers.put(type, (Provider<Type>) () -> {
+        providers.put(type, new ConstructorInjectionProvider<>(injectConstructor, type));
+    }
+
+    public <Type> Optional<Type> get(Class<Type> type) {
+        return Optional.ofNullable(providers.get(type)).map(provider -> (Type) provider.get());
+    }
+
+    class ConstructorInjectionProvider<T> implements Provider<T> {
+        private final Constructor<T> injectConstructor;
+        private final Class<?> componentType;
+
+        private boolean constructing = false;
+
+        public ConstructorInjectionProvider(Constructor<T> injectConstructor, Class<?> componentType) {
+            this.injectConstructor = injectConstructor;
+            this.componentType = componentType;
+        }
+
+        @Override
+        public T get() {
+            if (constructing) throw new CyclicDependencyFoundException(componentType);
             try {
+                constructing = true;
                 Object[] dependencies = stream(injectConstructor.getParameters())
-                        .map(p -> get(p.getType()).orElseThrow(DependencyNotFoundException::new))
+                        .map(p -> Context.this.get(p.getType()).orElseThrow(() ->
+                                new DependencyNotFoundException(p.getType(), componentType)))
                         .toArray(Object[]::new);
                 return injectConstructor.newInstance(dependencies);
+            } catch (CyclicDependencyFoundException e) {
+                throw new CyclicDependencyFoundException(componentType, e);
             } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
                 throw new RuntimeException(e);
+            } finally {
+                constructing = false;
             }
-        });
+        }
+
     }
 
     private <Type> Constructor<Type> getInjectConstructor(Class<Type> implementation) {
@@ -41,12 +68,9 @@ public class Context {
             try {
                 return implementation.getConstructor();
             } catch (NoSuchMethodException e) {
+                e.printStackTrace();
                 throw new IllegalComponentException();
             }
         });
-    }
-
-    public <Type> Optional<Type> get(Class<Type> type) {
-        return Optional.ofNullable(providers.get(type)).map(provider -> (Type) provider.get());
     }
 }

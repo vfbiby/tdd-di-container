@@ -1,11 +1,12 @@
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.mockito.internal.util.collections.Sets;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
+import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ContainerTest {
@@ -114,9 +115,24 @@ public class ContainerTest {
             @DisplayName("should throw exception if dependency not found")
             public void should_throw_exception_if_dependency_not_found() {
                 context.bind(Component.class, ComponentWithInjectConstructor.class);
-                assertThrows(DependencyNotFoundException.class, () -> {
+                DependencyNotFoundException exception = assertThrows(DependencyNotFoundException.class, () -> {
                     context.get(Component.class);
                 });
+                assertEquals(Dependency.class, exception.getDependency());
+                assertEquals(Component.class, exception.getComponent());
+            }
+
+            @Test
+            @DisplayName("should throw exception if transitive dependency not found")
+            public void should_throw_exception_if_transitive_dependency_not_found() {
+                context.bind(Component.class, ComponentWithInjectConstructor.class);
+                context.bind(Dependency.class, DependencyWithInjectConstructor.class);
+
+                DependencyNotFoundException exception = assertThrows(DependencyNotFoundException.class, () -> {
+                    context.get(Component.class);
+                });
+                assertEquals(String.class, exception.getDependency());
+                assertEquals(Dependency.class, exception.getComponent());
             }
 
             // cycle dependencies
@@ -126,7 +142,28 @@ public class ContainerTest {
                 context.bind(Component.class, ComponentWithInjectConstructor.class);
                 context.bind(Dependency.class, DependencyDependedOnComponent.class);
 
-                assertThrows(CyclicDependencyIsFound.class, () -> context.get(Component.class));
+                CyclicDependencyFoundException exception = assertThrows(CyclicDependencyFoundException.class, () -> context.get(Component.class));
+                Set<Class<?>> classes = Sets.newSet(exception.getComponents());
+
+                assertEquals(2, classes.size());
+                assertTrue(classes.contains(Component.class));
+                assertTrue(classes.contains(Dependency.class));
+            }
+
+            @Test
+            @DisplayName("should throw exception if transitive cyclic dependencies found")
+            public void should_throw_exception_if_transitive_cyclic_dependencies_found() {
+                context.bind(Component.class, ComponentWithInjectConstructor.class);
+                context.bind(Dependency.class, DependencyDependedOnAnotherDependency.class);
+                context.bind(AnotherDependency.class, AnotherDependencyDependedOnComponent.class);
+
+                CyclicDependencyFoundException exception = assertThrows(CyclicDependencyFoundException.class, () -> context.get(Component.class));
+                List<Class<?>> components = asList(exception.getComponents());
+
+                assertEquals(3, components.size());
+                assertTrue(components.contains(Component.class));
+                assertTrue(components.contains(Dependency.class));
+                assertTrue(components.contains(AnotherDependency.class));
             }
 
         }
@@ -152,15 +189,20 @@ public class ContainerTest {
 }
 
 interface Component {
+
+}
+
+interface Dependency {
+}
+
+interface AnotherDependency {
 }
 
 class ComponentWithDefaultConstructor implements Component {
 
     public ComponentWithDefaultConstructor() {
     }
-}
 
-interface Dependency {
 }
 
 class ComponentWithInjectConstructor implements Component {
@@ -210,9 +252,36 @@ class DependencyDependedOnComponent implements Dependency {
         return component;
     }
 
+    @Inject
     public DependencyDependedOnComponent(Component component) {
         this.component = component;
     }
 
     private Component component;
+}
+
+class AnotherDependencyDependedOnComponent implements AnotherDependency {
+    public Component getComponent() {
+        return component;
+    }
+
+    @Inject
+    public AnotherDependencyDependedOnComponent(Component component) {
+        this.component = component;
+    }
+
+    private Component component;
+}
+
+class DependencyDependedOnAnotherDependency implements Dependency {
+    public AnotherDependency getAnotherDependency() {
+        return anotherDependency;
+    }
+
+    @Inject
+    public DependencyDependedOnAnotherDependency(AnotherDependency anotherDependency) {
+        this.anotherDependency = anotherDependency;
+    }
+
+    private AnotherDependency anotherDependency;
 }
