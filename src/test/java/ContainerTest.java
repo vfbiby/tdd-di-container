@@ -1,5 +1,8 @@
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.collections.Sets;
 
 import java.util.List;
@@ -24,7 +27,8 @@ public class ContainerTest {
         @DisplayName("should bind type to a specific instance")
         public void should_bind_type_to_a_specific_instance() {
             //Give
-            Component instance = new Component() {};
+            Component instance = new Component() {
+            };
             //When
             config.bind(Component.class, instance);
             //Then
@@ -94,10 +98,6 @@ public class ContainerTest {
                 assertThrows(IllegalComponentException.class, () -> {
                     config.bind(Component.class, ComponentWithMultiInjectConstructors.class);
                 });
-//                context.bind(Component.class, ComponentWithMultiInjectConstructors.class);
-//                assertThrows(IllegalComponentException.class, () -> {
-//                    context.get(Component.class);
-//                });
             }
 
             // no default constructor and inject constructor
@@ -171,6 +171,44 @@ public class ContainerTest {
 
         @Nested
         public class FieldInjectionTest {
+            static class ComponentWithFieldInjection {
+                @Inject
+                Dependency dependency;
+            }
+
+            static class SubclassWithFieldInjection extends ComponentWithFieldInjection{}
+
+            // inject field
+            @Test
+            @DisplayName("should inject dependency via field")
+            public void should_inject_dependency_via_field() {
+                Dependency dependency = new Dependency() {
+                };
+                config.bind(Dependency.class, dependency);
+                config.bind(ComponentWithFieldInjection.class, ComponentWithFieldInjection.class);
+
+                ComponentWithFieldInjection component = config.getContext().get(ComponentWithFieldInjection.class).get();
+                assertSame(dependency, component.dependency);
+            }
+
+            @Test
+            public void should_inject_dependency_via_superclass_inject_field() {
+                Dependency dependency = new Dependency() {
+                };
+                config.bind(Dependency.class, dependency);
+                config.bind(SubclassWithFieldInjection.class, SubclassWithFieldInjection.class);
+
+                SubclassWithFieldInjection component = config.getContext().get(SubclassWithFieldInjection.class).get();
+                assertSame(dependency, component.dependency);
+            }
+
+            @Test
+            @DisplayName("should include field dependency in dependencies")
+            public void should_include_field_dependency_in_dependencies() {
+                ConstructorInjectionProvider<ComponentWithFieldInjection> provider = new ConstructorInjectionProvider<>(ComponentWithFieldInjection.class);
+                assertArrayEquals(new Class<?>[]{Dependency.class}, provider.getDependencies().toArray(Class<?>[]::new));
+            }
+
         }
 
         @Nested
