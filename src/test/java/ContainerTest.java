@@ -176,7 +176,8 @@ public class ContainerTest {
                 Dependency dependency;
             }
 
-            static class SubclassWithFieldInjection extends ComponentWithFieldInjection{}
+            static class SubclassWithFieldInjection extends ComponentWithFieldInjection {
+            }
 
             // inject field
             @Test
@@ -213,6 +214,107 @@ public class ContainerTest {
 
         @Nested
         public class MethodInjectionTest {
+            // TODO: 2022/4/27 inject method with no dependencies will be called
+
+            static class InjectMethodWithNoDependency {
+                boolean called = false;
+
+                @Inject
+                void install() {
+                    called = true;
+                }
+            }
+
+            // TODO: 2022/4/27 inject method with dependencies will lbe called
+
+            @Test
+            @DisplayName("should call inject method even if no dependency declared")
+            public void should_call_inject_method_even_if_no_dependency_declared() {
+                config.bind(InjectMethodWithNoDependency.class, InjectMethodWithNoDependency.class);
+                InjectMethodWithNoDependency component = config.getContext().get(InjectMethodWithNoDependency.class).get();
+                assertTrue(component.called);
+            }
+
+            // TODO: 2022/4/27 override inject method from superclass
+            static class SuperClassWithInjectMethod {
+                int superCalled = 0;
+
+                @Inject
+                void install() {
+                    superCalled++;
+                }
+            }
+
+            static class SubclassWithInjectMethod extends SuperClassWithInjectMethod {
+                int subCalled = 0;
+
+                @Inject
+                void Install() {
+                    subCalled = superCalled + 1;
+                }
+            }
+
+            static class SubclassOverrideSuperclassWithInject extends SuperClassWithInjectMethod {
+                @Inject
+                void install() {
+                    super.install();
+                }
+            }
+
+            @Test
+            @DisplayName("should inject dependencies via inject method from superclass")
+            public void should_inject_dependencies_via_inject_method_from_superclass() {
+                config.bind(SubclassWithInjectMethod.class, SubclassWithInjectMethod.class);
+                SubclassWithInjectMethod component = config.getContext().get(SubclassWithInjectMethod.class).get();
+                assertEquals(1, component.superCalled);
+                assertEquals(2, component.subCalled);
+            }
+
+            @Test
+            @DisplayName("should only call one if subclass override inject method with inject")
+            public void should_only_call_one_if_subclass_override_inject_method_with_inject(){
+                config.bind(SubclassOverrideSuperclassWithInject.class, SubclassOverrideSuperclassWithInject.class);
+                SubclassOverrideSuperclassWithInject component = config.getContext().get(SubclassOverrideSuperclassWithInject.class).get();
+                assertEquals(1, component.superCalled);
+            }
+
+            static class SubclassOverrideSuperClassWithNoInject extends SuperClassWithInjectMethod{
+                void install(){
+                    super.install();
+                }
+            }
+
+            @Test
+            @DisplayName("should not call inject method if override with no inject")
+            public void should_not_call_inject_method_if_override_with_no_inject(){
+                config.bind(SubclassOverrideSuperClassWithNoInject.class, SubclassOverrideSuperClassWithNoInject.class);
+                SubclassOverrideSuperClassWithNoInject component = config.getContext().get(SubclassOverrideSuperClassWithNoInject.class).get();
+                assertEquals(0, component.superCalled);
+            }
+
+            static class InjectMethodWithDependency {
+                Dependency dependency;
+
+                @Inject
+                void install(Dependency dependency) {
+                    this.dependency = dependency;
+                }
+            }
+
+            @Test
+            @DisplayName("should inject dependency via inject method")
+            public void should_inject_dependency_via_inject_method() {
+                Dependency dependency = new Dependency() {
+                };
+                config.bind(Dependency.class, dependency);
+                config.bind(InjectMethodWithDependency.class, InjectMethodWithDependency.class);
+                InjectMethodWithDependency component = config.getContext().get(InjectMethodWithDependency.class).get();
+
+                assertSame(dependency, component.dependency);
+            }
+
+            // TODO: 2022/4/27 include dependencies from inject methods
+            // TODO: 2022/4/27 throw exception if type parameter defined
         }
 
     }
