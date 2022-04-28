@@ -16,9 +16,14 @@ class ConstructorInjectionProvider<T> implements ContextConfig.ComponentProvider
     private List<Method> injectMethods;
 
     public ConstructorInjectionProvider(Class<T> component) {
+        if (Modifier.isAbstract(component.getModifiers())) throw new IllegalComponentException();
         this.injectConstructor = getInjectConstructor(component);
         this.injectFields = getInjectFields(component);
         this.injectMethods = getInjectMethods(component);
+        if (injectFields.stream().anyMatch(f -> Modifier.isFinal(f.getModifiers())))
+            throw new IllegalComponentException();
+        if (injectMethods.stream().anyMatch(m -> m.getTypeParameters().length != 0))
+            throw new IllegalComponentException();
     }
 
     @Override
@@ -83,7 +88,6 @@ class ConstructorInjectionProvider<T> implements ContextConfig.ComponentProvider
             try {
                 return implementation.getDeclaredConstructor();
             } catch (NoSuchMethodException e) {
-                e.printStackTrace();
                 throw new IllegalComponentException();
             }
         });

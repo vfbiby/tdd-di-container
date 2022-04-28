@@ -36,8 +36,28 @@ public class ContainerTest {
         }
 
 
-        // TODO: 2022/4/19 abstract class
-        // TODO: 2022/4/19 interface
+        // abstract class
+
+        abstract class AbstractComponent implements Component {
+            @Inject
+            public AbstractComponent() {
+            }
+        }
+
+        @Test
+        @DisplayName("should throw exception if component is abstract")
+        public void should_throw_exception_if_component_is_abstract() {
+            assertThrows(IllegalComponentException.class, () -> new ConstructorInjectionProvider<>(AbstractComponent.class));
+        }
+
+        // interface
+
+        @Test
+        @DisplayName("should throw exception if component is interface")
+        public void should_throw_exception_if_component_is_interface() {
+            assertThrows(IllegalComponentException.class, () -> new ConstructorInjectionProvider<>(Component.class));
+        }
+
         // component does not exist
         @Test
         public void should_return_empty_if_component_not_found() {
@@ -203,6 +223,19 @@ public class ContainerTest {
                 assertSame(dependency, component.dependency);
             }
 
+            // throw exception if field is final
+
+            static class FinalInjectField {
+                @Inject
+                final Dependency dependency = null;
+            }
+
+            @Test
+            @DisplayName("should throw exception if inject field is final")
+            public void should_throw_exception_if_inject_field_is_final() {
+                assertThrows(IllegalComponentException.class, () -> new ConstructorInjectionProvider<>(FinalInjectField.class));
+            }
+
             @Test
             @DisplayName("should include field dependency in dependencies")
             public void should_include_field_dependency_in_dependencies() {
@@ -214,7 +247,7 @@ public class ContainerTest {
 
         @Nested
         public class MethodInjectionTest {
-            // TODO: 2022/4/27 inject method with no dependencies will be called
+            // inject method with no dependencies will be called
 
             static class InjectMethodWithNoDependency {
                 boolean called = false;
@@ -225,7 +258,7 @@ public class ContainerTest {
                 }
             }
 
-            // TODO: 2022/4/27 inject method with dependencies will lbe called
+            // inject method with dependencies will lbe called
 
             @Test
             @DisplayName("should call inject method even if no dependency declared")
@@ -235,7 +268,7 @@ public class ContainerTest {
                 assertTrue(component.called);
             }
 
-            // TODO: 2022/4/27 override inject method from superclass
+            // override inject method from superclass
             static class SuperClassWithInjectMethod {
                 int superCalled = 0;
 
@@ -272,21 +305,21 @@ public class ContainerTest {
 
             @Test
             @DisplayName("should only call one if subclass override inject method with inject")
-            public void should_only_call_one_if_subclass_override_inject_method_with_inject(){
+            public void should_only_call_one_if_subclass_override_inject_method_with_inject() {
                 config.bind(SubclassOverrideSuperclassWithInject.class, SubclassOverrideSuperclassWithInject.class);
                 SubclassOverrideSuperclassWithInject component = config.getContext().get(SubclassOverrideSuperclassWithInject.class).get();
                 assertEquals(1, component.superCalled);
             }
 
-            static class SubclassOverrideSuperClassWithNoInject extends SuperClassWithInjectMethod{
-                void install(){
+            static class SubclassOverrideSuperClassWithNoInject extends SuperClassWithInjectMethod {
+                void install() {
                     super.install();
                 }
             }
 
             @Test
             @DisplayName("should not call inject method if override with no inject")
-            public void should_not_call_inject_method_if_override_with_no_inject(){
+            public void should_not_call_inject_method_if_override_with_no_inject() {
                 config.bind(SubclassOverrideSuperClassWithNoInject.class, SubclassOverrideSuperClassWithNoInject.class);
                 SubclassOverrideSuperClassWithNoInject component = config.getContext().get(SubclassOverrideSuperClassWithNoInject.class).get();
                 assertEquals(0, component.superCalled);
@@ -313,8 +346,20 @@ public class ContainerTest {
                 assertSame(dependency, component.dependency);
             }
 
-            // TODO: 2022/4/27 include dependencies from inject methods
-            // TODO: 2022/4/27 throw exception if type parameter defined
+            // throw exception if type parameter defined
+
+            static class InjectMethodWithTypeParameter {
+                @Inject
+                <T> void install() {
+                }
+            }
+
+            @Test
+            @DisplayName("should throw exception if inject method has type parameter")
+            public void should_throw_exception_if_inject_method_has_type_parameter() {
+                assertThrows(IllegalComponentException.class, () -> new ConstructorInjectionProvider<>(InjectMethodWithTypeParameter.class));
+            }
+
         }
 
     }
