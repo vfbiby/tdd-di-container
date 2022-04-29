@@ -72,6 +72,7 @@ public class ContainerTest {
 
     @Nested
     public class ComponentConstructionTest {
+
         @Test
         @DisplayName("should bind type to a specific instance")
         public void should_bind_type_to_a_specific_instance() {
@@ -84,36 +85,12 @@ public class ContainerTest {
             assertSame(instance, config.getContext().get(Component.class).get());
         }
 
-
-        // abstract class
-
-        abstract class AbstractComponent implements Component {
-            @Inject
-            public AbstractComponent() {
-            }
-        }
-
-        @Test
-        @DisplayName("should throw exception if component is abstract")
-        public void should_throw_exception_if_component_is_abstract() {
-            assertThrows(IllegalComponentException.class, () -> new ConstructorInjectionProvider<>(AbstractComponent.class));
-        }
-
-        // interface
-
-        @Test
-        @DisplayName("should throw exception if component is interface")
-        public void should_throw_exception_if_component_is_interface() {
-            assertThrows(IllegalComponentException.class, () -> new ConstructorInjectionProvider<>(Component.class));
-        }
-
         // component does not exist
         @Test
         public void should_return_empty_if_component_not_found() {
             Optional<Component> component = config.getContext().get(Component.class);
             assertTrue(component.isEmpty());
         }
-
 
     }
 
