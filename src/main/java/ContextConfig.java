@@ -1,4 +1,3 @@
-import java.lang.reflect.Field;
 import java.util.*;
 
 public class ContextConfig {
@@ -20,7 +19,7 @@ public class ContextConfig {
 
     public <Type, Implementation extends Type>
     void bind(Class<Type> type, Class<Implementation> implementation) {
-        providers.put(type, new ConstructorInjectionProvider<>(implementation));
+        providers.put(type, new InjectionProvider<>(implementation));
     }
 
     public void checkDependencies(Class<?> component, Stack<Class<?>> visiting) {
