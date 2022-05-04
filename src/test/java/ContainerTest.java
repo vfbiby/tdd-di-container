@@ -1,10 +1,13 @@
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.collections.Sets;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -92,10 +95,42 @@ public class ContainerTest {
             assertTrue(component.isEmpty());
         }
 
+        //could get Provider<T> from context
+        @Test
+        @DisplayName("should retrieve bind type as provider")
+        public void should_retrieve_bind_type_as_provider() {
+            Component instance = new Component() {
+            };
+            config.bind(Component.class, instance);
+            Context context = config.getContext();
+            ParameterizedType type = new TypeLiteral<Provider<Component>>() {
+            }.getType();
+
+            Provider<Component> provider = (Provider<Component>) context.get(type).get();
+            assertSame(instance, provider.get());
+        }
+
+        @Test
+        @DisplayName("should not retrieve bind type as unsupported container")
+        public void should_not_retrieve_bind_type_as_unsupported_container() {
+            Component instance = new Component() {
+            };
+            config.bind(Component.class, instance);
+            Context context = config.getContext();
+            ParameterizedType type = new TypeLiteral<List<Component>>() {
+            }.getType();
+            assertFalse(context.get(type).isPresent());
+        }
+
+        static abstract class TypeLiteral<T> {
+            public ParameterizedType getType() {
+                return (ParameterizedType) ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
+            }
+        }
     }
 
     @Nested
-    public class DependenciesSelectionTest {
+    public class DependenciesSelection {
     }
 
     @Nested
