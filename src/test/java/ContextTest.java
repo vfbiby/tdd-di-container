@@ -7,7 +7,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.internal.util.collections.Sets;
 
 import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -160,23 +159,44 @@ public class ContextTest {
             return Stream.of(
                     Arguments.of(Named.of("Constructor Injection", DependencyChecker.MissingDependencyConstructor.class)),
                     Arguments.of(Named.of("Field Injection", DependencyChecker.MissingDependencyField.class)),
-                    Arguments.of(Named.of("Method Injection", DependencyChecker.MissingDependencyMethod.class)));
+                    Arguments.of(Named.of("Method Injection", DependencyChecker.MissingDependencyMethod.class)),
+                    Arguments.of(Named.of("Provider in Inject Constructor", MissingDependencyProviderConstructor.class)),
+                    Arguments.of(Named.of("Provider in Inject Field", MissingDependencyProviderField.class)),
+                    Arguments.of(Named.of("Provider in Inject Method", MissingDependencyProviderMethod.class))
+            );
         }
 
-        private static class MissingDependencyConstructor {
+        private static class MissingDependencyConstructor implements Component {
             @Inject
             public MissingDependencyConstructor(Dependency dependency) {
             }
         }
 
-        private static class MissingDependencyField {
+        private static class MissingDependencyField implements Component {
             @Inject
             public Dependency dependency;
         }
 
-        private static class MissingDependencyMethod {
+        private static class MissingDependencyMethod implements Component {
             @Inject
             void install(Dependency dependency) {
+            }
+        }
+
+        static class MissingDependencyProviderConstructor implements Component {
+            @Inject
+            public MissingDependencyProviderConstructor(Provider<Dependency> dependency) {
+            }
+        }
+
+        private static class MissingDependencyProviderField implements Component {
+            @Inject
+            Provider<Dependency> dependency;
+        }
+
+        private static class MissingDependencyProviderMethod implements Component {
+            @Inject
+            void install(Provider<Dependency> dependency) {
             }
         }
 
@@ -315,6 +335,23 @@ public class ContextTest {
             void install(Component component) {
             }
         }
+
+        private static class CyclicDependencyProviderConstructor implements Dependency {
+            @Inject
+            public CyclicDependencyProviderConstructor(Provider<Component> component) {
+            }
+        }
+
+        @Test
+        @DisplayName("should not throw exception if cyclic dependency via provider")
+        public void should_not_throw_exception_if_cyclic_dependency_via_provider() {
+            config.bind(Component.class, CyclicComponentInjectConstructor.class);
+            config.bind(Dependency.class, CyclicDependencyProviderConstructor.class);
+
+            Context context = config.getContext();
+            assertTrue(context.get(Component.class).isPresent());
+        }
+
     }
 
 }
