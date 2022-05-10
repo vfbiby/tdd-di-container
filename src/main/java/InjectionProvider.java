@@ -44,13 +44,7 @@ class InjectionProvider<T> implements ContextConfig.ComponentProvider<T> {
     }
 
     @Override
-    public List<Class<?>> getDependencies() {
-        return concat(concat(stream(injectConstructor.getParameterTypes()),
-                injectFields.stream().map(Field::getType)), injectMethods.stream().flatMap(m -> stream(m.getParameterTypes()))).toList();
-    }
-
-    @Override
-    public List<Type> getDependencyTypes() {
+    public List<Type> getDependencies() {
         return concat(concat(stream(injectConstructor.getParameters()).map(Parameter::getParameterizedType),
                         injectFields.stream().map(Field::getGenericType)),
                 injectMethods.stream().flatMap(m -> stream(m.getParameters()).map(Parameter::getParameterizedType))).toList();
@@ -95,20 +89,6 @@ class InjectionProvider<T> implements ContextConfig.ComponentProvider<T> {
         return members;
     }
 
-    private static Object[] toDependencies(Context context, Executable executable) {
-        return stream(executable.getParameters()).map(p -> {
-            Type type = p.getParameterizedType();
-            if (type instanceof ParameterizedType) return context.get((ParameterizedType) type).get();
-            return context.get((Class<?>) type).get();
-        }).toArray(Object[]::new);
-    }
-
-    private Object toDependency(Context context, Field field) {
-        Type type = field.getGenericType();
-        if (type instanceof ParameterizedType) return context.get((ParameterizedType) type).get();
-        return context.get((Class<?>) type).get();
-    }
-
     private static <T extends AnnotatedElement> Stream<T> injectable(T[] declaredFields) {
         return stream(declaredFields).filter(p -> p.isAnnotationPresent(Inject.class));
     }
@@ -123,6 +103,18 @@ class InjectionProvider<T> implements ContextConfig.ComponentProvider<T> {
 
     private static boolean isOverrideByInjectMethod(List<Method> injectMethods, Method m) {
         return injectMethods.stream().noneMatch(o -> isOverride(m, o));
+    }
+
+    private static Object[] toDependencies(Context context, Executable executable) {
+        return stream(executable.getParameters()).map(p -> toDependency(context, p.getParameterizedType())).toArray(Object[]::new);
+    }
+
+    private Object toDependency(Context context, Field field) {
+        return toDependency(context, field.getGenericType());
+    }
+
+    private static Object toDependency(Context context, Type type) {
+        return context.get(type).get();
     }
 
 }
