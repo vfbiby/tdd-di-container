@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.util.Optional;
 
@@ -14,6 +15,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InjectionTest {
+
+    // TODO: 2022/5/12 inject with qualifier
+    // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
+    // TODO: 2022/5/12 inject with qualifier
+    // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
 
     private final Dependency dependency = mock(Dependency.class);
     private final Context context = mock(Context.class);
@@ -127,6 +133,12 @@ public class InjectionTest {
 
         }
 
+        @Nested
+        class WithQualifier {
+            // TODO: 2022/5/12 inject with qualifier
+            // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
+        }
+
     }
 
     @Nested
@@ -204,6 +216,12 @@ public class InjectionTest {
                 assertThrows(IllegalComponentException.class, () -> new InjectionProvider<>(FinalInjectField.class));
             }
 
+        }
+
+        @Nested
+        class WithQualifier {
+            // TODO: 2022/5/12 inject with qualifier
+            // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
         }
 
     }
