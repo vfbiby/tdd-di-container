@@ -5,7 +5,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.util.Optional;
 
@@ -29,8 +28,8 @@ public class InjectionTest {
     @BeforeEach
     public void setup() throws NoSuchFieldException {
         dependencyProviderType = (ParameterizedType) InjectionTest.class.getDeclaredField("dependencyProvider").getGenericType();
-        when(context.get(eq(Context.Ref.of(Dependency.class)))).thenReturn(Optional.of(dependency));
-        when(context.get(eq(Context.Ref.of(dependencyProviderType)))).thenReturn(Optional.of(dependencyProvider));
+        when(context.get(eq(ComponentRef.of(Dependency.class)))).thenReturn(Optional.of(dependency));
+        when(context.get(eq(ComponentRef.of(dependencyProviderType)))).thenReturn(Optional.of(dependencyProvider));
     }
 
     @Nested
@@ -59,7 +58,7 @@ public class InjectionTest {
             @DisplayName("should include dependency from inject constructor")
             public void should_include_dependency_from_inject_constructor() {
                 InjectionProvider<ComponentWithInjectConstructor> provider = new InjectionProvider<>(ComponentWithInjectConstructor.class);
-                assertArrayEquals(new Context.Ref[]{Context.Ref.of(Dependency.class)}, provider.getDependencies().toArray(Context.Ref[]::new));
+                assertArrayEquals(new ComponentRef[]{ComponentRef.of(Dependency.class)}, provider.getDependencies().toArray(ComponentRef[]::new));
             }
 
             // include dependency type from inject constructor
@@ -67,7 +66,7 @@ public class InjectionTest {
             @DisplayName("should include provider type from inject constructor")
             public void should_include_provider_type_from_inject_constructor() {
                 InjectionProvider<ProviderInjectConstructor> provider = new InjectionProvider<>(ProviderInjectConstructor.class);
-                assertArrayEquals(new Context.Ref[]{Context.Ref.of(dependencyProviderType)}, provider.getDependencies().toArray(Context.Ref[]::new));
+                assertArrayEquals(new ComponentRef[]{ComponentRef.of(dependencyProviderType)}, provider.getDependencies().toArray(ComponentRef[]::new));
             }
 
             //support inject constructor
@@ -94,7 +93,7 @@ public class InjectionTest {
         public class IllegalInjectionConstructor {
 
             // abstract class
-            abstract class AbstractComponent implements Component {
+            abstract class AbstractComponent implements TestComponent {
                 @Inject
                 public AbstractComponent() {
                 }
@@ -110,7 +109,7 @@ public class InjectionTest {
             @Test
             @DisplayName("should throw exception if component is interface")
             public void should_throw_exception_if_component_is_interface() {
-                assertThrows(IllegalComponentException.class, () -> new InjectionProvider<>(Component.class));
+                assertThrows(IllegalComponentException.class, () -> new InjectionProvider<>(TestComponent.class));
             }
 
             // multi inject constructors
@@ -156,7 +155,7 @@ public class InjectionTest {
             @DisplayName("should include dependency from field dependency")
             public void should_include_dependency_from_field_dependency() {
                 InjectionProvider<ComponentWithFieldInjection> provider = new InjectionProvider<>(ComponentWithFieldInjection.class);
-                assertArrayEquals(new Context.Ref[]{Context.Ref.of(Dependency.class)}, provider.getDependencies().toArray(Context.Ref[]::new));
+                assertArrayEquals(new ComponentRef[]{ComponentRef.of(Dependency.class)}, provider.getDependencies().toArray(ComponentRef[]::new));
             }
 
             // inject field
@@ -195,7 +194,7 @@ public class InjectionTest {
             @DisplayName("should include provider type from inject field")
             public void should_include_provider_type_from_inject_field() {
                 InjectionProvider<ProviderInjectField> provider = new InjectionProvider<>(ProviderInjectField.class);
-                assertArrayEquals(new Context.Ref[]{Context.Ref.of(dependencyProviderType)}, provider.getDependencies().toArray(Context.Ref[]::new));
+                assertArrayEquals(new ComponentRef[]{ComponentRef.of(dependencyProviderType)}, provider.getDependencies().toArray(ComponentRef[]::new));
             }
 
 
@@ -325,7 +324,7 @@ public class InjectionTest {
             @DisplayName("should include dependencies from inject method")
             public void should_include_dependencies_from_inject_method() {
                 InjectionProvider<InjectMethodWithDependency> provider = new InjectionProvider<>(InjectMethodWithDependency.class);
-                assertArrayEquals(new Context.Ref[]{Context.Ref.of(Dependency.class)}, provider.getDependencies().toArray(Context.Ref[]::new));
+                assertArrayEquals(new ComponentRef[]{ComponentRef.of(Dependency.class)}, provider.getDependencies().toArray(ComponentRef[]::new));
             }
 
             // include dependency type from inject method
@@ -333,7 +332,7 @@ public class InjectionTest {
             @DisplayName("should include provider type from inject method")
             public void should_include_provider_type_from_inject_method() {
                 InjectionProvider<ProviderInjectMethod> provider = new InjectionProvider<>(ProviderInjectMethod.class);
-                assertArrayEquals(new Context.Ref[]{Context.Ref.of(dependencyProviderType)}, provider.getDependencies().toArray(Context.Ref[]::new));
+                assertArrayEquals(new ComponentRef[]{ComponentRef.of(dependencyProviderType)}, provider.getDependencies().toArray(ComponentRef[]::new));
             }
 
             //support inject method
@@ -375,7 +374,7 @@ public class InjectionTest {
         }
     }
 
-    static class ComponentWithMultiInjectConstructors implements Component {
+    static class ComponentWithMultiInjectConstructors implements TestComponent {
         @Inject
         public ComponentWithMultiInjectConstructors(String name) {
         }
@@ -385,12 +384,12 @@ public class InjectionTest {
         }
     }
 
-    static class ComponentWithNoInjectConstructorNorDefaultConstructor implements Component {
+    static class ComponentWithNoInjectConstructorNorDefaultConstructor implements TestComponent {
         public ComponentWithNoInjectConstructorNorDefaultConstructor(String name) {
         }
     }
 
-    static class ComponentWithInjectConstructor implements Component {
+    static class ComponentWithInjectConstructor implements TestComponent {
         private Dependency dependency;
 
         @Inject
@@ -403,7 +402,7 @@ public class InjectionTest {
         }
     }
 
-    static class ComponentWithDefaultConstructor implements Component {
+    static class ComponentWithDefaultConstructor implements TestComponent {
 
         public ComponentWithDefaultConstructor() {
         }

@@ -1,4 +1,3 @@
-import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 
@@ -21,7 +20,7 @@ public class ContainerTest {
 
 }
 
-interface Component {
+interface TestComponent {
     default Dependency dependency() {
         return null;
     }
