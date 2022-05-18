@@ -1,4 +1,5 @@
 import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import jakarta.inject.Provider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,11 +15,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class InjectionTest {
-
-    // TODO: 2022/5/12 inject with qualifier
-    // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
-    // TODO: 2022/5/12 inject with qualifier
-    // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
 
     private final Dependency dependency = mock(Dependency.class);
     private final Context context = mock(Context.class);
@@ -135,6 +131,21 @@ public class InjectionTest {
         @Nested
         class WithQualifier {
             // TODO: 2022/5/12 inject with qualifier
+            // TODO: 2022/5/18 include qualifier with dependency
+            static class InjectConstructor {
+                @Inject
+                public InjectConstructor(@Named("ChoseOne") Dependency dependency) {
+                }
+            }
+
+            @Test
+            @DisplayName("should include qualifier with dependency")
+            public void should_include_qualifier_with_dependency() {
+                InjectionProvider<InjectConstructor> provider = new InjectionProvider<>(InjectConstructor.class);
+                assertArrayEquals(
+                        new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new ContextTest.TypeBinding.WithQualifier.NamedLiteral("ChoseOne"))},
+                        provider.getDependencies().toArray());
+            }
             // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
         }
 
@@ -220,6 +231,7 @@ public class InjectionTest {
         @Nested
         class WithQualifier {
             // TODO: 2022/5/12 inject with qualifier
+            // TODO: 2022/5/18 include qualifier with dependency
             // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
         }
 
@@ -372,6 +384,14 @@ public class InjectionTest {
             }
 
         }
+
+        @Nested
+        class WithQualifier {
+            // TODO: 2022/5/12 inject with qualifier
+            // TODO: 2022/5/18 include qualifier with dependency
+            // TODO: 2022/5/12 throw illegal component if illegal qualifier given to injection point
+        }
+
     }
 
     static class ComponentWithMultiInjectConstructors implements TestComponent {

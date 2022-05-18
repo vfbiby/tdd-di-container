@@ -28,6 +28,10 @@ public class ComponentRef<ComponentType> {
         init(type, null);
     }
 
+    public static ComponentRef of(Type type, Annotation qualifier) {
+        return new ComponentRef<>(type, qualifier);
+    }
+
     private void init(Type type, Annotation qualifier) {
         if (type instanceof ParameterizedType container) {
             this.container = container.getRawType();
