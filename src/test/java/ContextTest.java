@@ -109,7 +109,6 @@ public class ContextTest {
             };
             config.bind(TestComponent.class, instance);
             Context context = config.getContext();
-
             Provider<TestComponent> provider = context.get(new ComponentRef<Provider<TestComponent>>() {
             }).get();
             assertSame(instance, provider.get());
@@ -130,24 +129,6 @@ public class ContextTest {
         @Nested
         class WithQualifier {
 
-            record NamedLiteral(String value) implements jakarta.inject.Named {
-                @Override
-                public Class<? extends Annotation> annotationType() {
-                    return jakarta.inject.Named.class;
-                }
-
-                @Override
-                public boolean equals(Object o) {
-                    if (o instanceof jakarta.inject.Named named) return Objects.equals(value, named.value());
-                    return false;
-                }
-
-                @Override
-                public int hashCode() {
-                    return "value".hashCode() * 127 ^ value.hashCode();
-                }
-            }
-
             @Test
             @DisplayName("should bind instance with qualifiers")
             public void should_bind_instance_with_qualifiers() {
@@ -160,6 +141,18 @@ public class ContextTest {
 
                 assertSame(instance, chosenOne);
                 assertSame(instance, skywalker);
+            }
+
+            @Test
+            @DisplayName("should retrieve bind type as provider")
+            public void should_retrieve_bind_type_as_provider() {
+                TestComponent instance = new TestComponent() {
+                };
+                config.bind(TestComponent.class, instance, new NamedLiteral("ChoseOne"), new SkywalkerLiteral());
+                Context context = config.getContext();
+                Provider<TestComponent> provider = context.get(new ComponentRef<Provider<TestComponent>>(new SkywalkerLiteral()) {
+                }).get();
+                assertSame(instance, provider.get());
             }
 
             @Test
@@ -178,6 +171,15 @@ public class ContextTest {
                 assertSame(dependency, skywalker.getDependency());
             }
 
+            @Test
+            @DisplayName("should retrieve empty if no matched qualifier")
+            public void should_retrieve_empty_if_no_matched_qualifier() {
+                config.bind(TestComponent.class, new TestComponent() {
+                });
+                Optional<TestComponent> component = config.getContext().get(ComponentRef.of(TestComponent.class, new SkywalkerLiteral()));
+                assertTrue(component.isEmpty());
+            }
+
             // throws illegal component if illegal qualifier
             @Test
             @DisplayName("should throw exception if illegal qualifier given to instance")
@@ -193,7 +195,6 @@ public class ContextTest {
                 assertThrows(IllegalComponentException.class, () -> config.bind(TestComponent.class, InjectionTest.ComponentWithInjectConstructor.class, new TestLiteral()));
             }
 
-            // TODO: 2022/5/18 Provider
         }
 
     }
@@ -419,43 +420,120 @@ public class ContextTest {
                 }
             }
 
-            @Test
-            @DisplayName("should throw exception if dependency with qualifier not found")
-            public void should_throw_exception_if_dependency_with_qualifier_not_found() {
+            @ParameterizedTest
+            @MethodSource
+            public void should_throw_exception_if_dependency_with_qualifier_not_found(Class<? extends TestComponent> component) {
                 config.bind(Dependency.class, new Dependency() {
                 });
-                config.bind(InjectConstructor.class, InjectConstructor.class, new TypeBinding.WithQualifier.NamedLiteral("Owner"));
+                config.bind(TestComponent.class, component, new NamedLiteral("Owner"));
                 DependencyNotFoundException exception = assertThrows(DependencyNotFoundException.class, () -> config.getContext());
-
-                assertEquals(new Component(InjectConstructor.class, new TypeBinding.WithQualifier.NamedLiteral("Owner")), exception.getComponent());
+                assertEquals(new Component(TestComponent.class, new NamedLiteral("Owner")), exception.getComponent());
                 assertEquals(new Component(Dependency.class, new SkywalkerLiteral()), exception.getDependency());
             }
 
-            // check cyclic dependencies with qualifier
-            static class SkywalkerDependency implements Dependency {
-                @Inject
-                public SkywalkerDependency(@jakarta.inject.Named("ChoseOne") Dependency dependency) {
-                }
+            public static Stream<Arguments> should_throw_exception_if_dependency_with_qualifier_not_found() {
+                return Stream.of(
+                        Named.of("Inject Constructor with Qualifier", InjectConstructor.class),
+                        Named.of("Inject Field with Qualifier", InjectField.class),
+                        Named.of("Inject Method with Qualifier", InjectMethod.class),
+                        Named.of("Provider in Inject Constructor with Qualifier", InjectConstructorProvider.class),
+                        Named.of("Provider in Inject Field with Qualifier", InjectFieldProvider.class),
+                        Named.of("Provider in Inject Method with Qualifier", InjectMethodProvider.class)
+                ).map(Arguments::of);
             }
 
-            static class NotCyclicDependency implements Dependency {
-                @Inject
-                public NotCyclicDependency(@Skywalker Dependency dependency) {
-                }
-            }
-
-            @Test
-            @DisplayName("should not throw cyclic exception if component with same type taged with different qualifier")
-            public void should_not_throw_cyclic_exception_if_component_with_same_type_taged_with_different_qualifier() {
+            @ParameterizedTest(name = "{1} -> @Skywalker({0}) -> @Named(\"ChoseOne\") not cyclic dependencies")
+            @MethodSource
+            public void should_not_throw_cyclic_exception_if_component_with_same_type_taged_with_different_qualifier(Class<? extends Dependency> skywalker,
+                                                                                                                     Class<? extends Dependency> notCyclic) {
                 Dependency instance = new Dependency() {
                 };
-                config.bind(Dependency.class, instance, new TypeBinding.WithQualifier.NamedLiteral("ChoseOne"));
-                config.bind(Dependency.class, SkywalkerDependency.class, new SkywalkerLiteral());
-                config.bind(Dependency.class, NotCyclicDependency.class);
-
+                config.bind(Dependency.class, instance, new NamedLiteral("ChoseOne"));
+                config.bind(Dependency.class, skywalker, new SkywalkerLiteral());
+                config.bind(Dependency.class, notCyclic);
                 assertDoesNotThrow(() -> config.getContext());
             }
 
+            static class SkywalkerInjectConstructor implements Dependency {
+                @Inject
+                public SkywalkerInjectConstructor(@jakarta.inject.Named("ChoseOne") Dependency dependency) {
+                }
+            }
+
+            static class SkywalkerInjectField implements Dependency {
+                @Inject
+                @jakarta.inject.Named("ChoseOne")
+                Dependency dependency;
+            }
+
+            static class SkywalkerInjectMethod implements Dependency {
+                @Inject
+                void install(@jakarta.inject.Named("ChoseOne") Dependency dependency) {
+                }
+            }
+
+            static class NotCyclicInjectConstructor implements Dependency {
+                @Inject
+                public NotCyclicInjectConstructor(@Skywalker Dependency dependency) {
+                }
+            }
+
+
+            static class NotCyclicInjectField implements Dependency {
+                @Inject
+                @Skywalker
+                Dependency dependency;
+            }
+
+
+            static class NotCyclicInjectMethod implements Dependency {
+                @Inject
+                public void install(@Skywalker Dependency dependency) {
+                }
+            }
+
+
+            public static Stream<Arguments> should_not_throw_cyclic_exception_if_component_with_same_type_taged_with_different_qualifier() {
+                List<Arguments> arguments = new ArrayList<>();
+                for (Named skywalker : List.of(Named.of("Inject Constructor", SkywalkerInjectConstructor.class),
+                        Named.of("Inject Field", SkywalkerInjectField.class),
+                        Named.of("Inject Method", SkywalkerInjectMethod.class)))
+                    for (Named notCyclic : List.of(Named.of("Inject Constructor", NotCyclicInjectConstructor.class),
+                            Named.of("Inject Constructor", NotCyclicInjectField.class),
+                            Named.of("Inject Constructor", NotCyclicInjectMethod.class)))
+                        arguments.add(Arguments.of(skywalker, notCyclic));
+                return arguments.stream();
+            }
+
+            static class InjectField {
+                @Inject
+                @Skywalker
+                Dependency dependency;
+            }
+
+            static class InjectMethod {
+                @Inject
+                void install(@Skywalker Dependency dependency) {
+                }
+            }
+
+            static class InjectConstructorProvider implements TestComponent {
+                @Inject
+                public InjectConstructorProvider(@Skywalker Provider<Dependency> dependency) {
+                }
+            }
+
+            static class InjectFieldProvider {
+                @Inject
+                @Skywalker
+                Provider<Dependency> dependency;
+            }
+
+            static class InjectMethodProvider {
+                @Inject
+                void install(@Skywalker Provider<Dependency> dependency) {
+                }
+            }
         }
 
     }
@@ -465,6 +543,24 @@ public class ContextTest {
 @java.lang.annotation.Retention(RetentionPolicy.RUNTIME)
 @jakarta.inject.Qualifier
 @interface Skywalker {
+}
+
+record NamedLiteral(String value) implements jakarta.inject.Named {
+    @Override
+    public Class<? extends Annotation> annotationType() {
+        return jakarta.inject.Named.class;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof jakarta.inject.Named named) return Objects.equals(value, named.value());
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return "value".hashCode() * 127 ^ value.hashCode();
+    }
 }
 
 record SkywalkerLiteral() implements Skywalker {

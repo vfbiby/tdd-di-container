@@ -24,8 +24,12 @@ public class ComponentRef<ComponentType> {
     }
 
     protected ComponentRef() {
+        this(null);
+    }
+
+    protected ComponentRef(Annotation qualifier) {
         Type type = ((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0];
-        init(type, null);
+        init(type, qualifier);
     }
 
     public static ComponentRef of(Type type, Annotation qualifier) {

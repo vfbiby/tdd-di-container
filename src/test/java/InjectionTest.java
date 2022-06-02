@@ -134,7 +134,7 @@ public class InjectionTest {
             @BeforeEach
             public void before() {
                 Mockito.reset(context);
-                when(context.get(eq(ComponentRef.of(Dependency.class, new ContextTest.TypeBinding.WithQualifier.NamedLiteral("ChoseOne")))))
+                when(context.get(eq(ComponentRef.of(Dependency.class, new NamedLiteral("ChoseOne")))))
                         .thenReturn(Optional.of(dependency));
             }
 
@@ -162,7 +162,7 @@ public class InjectionTest {
             public void should_include_dependency_with_qualifier() {
                 InjectionProvider<InjectConstructor> provider = new InjectionProvider<>(InjectConstructor.class);
                 assertArrayEquals(
-                        new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new ContextTest.TypeBinding.WithQualifier.NamedLiteral("ChoseOne"))},
+                        new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new NamedLiteral("ChoseOne"))},
                         provider.getDependencies().toArray());
             }
 
@@ -264,7 +264,7 @@ public class InjectionTest {
             @BeforeEach
             public void before() {
                 Mockito.reset(context);
-                when(context.get(eq(ComponentRef.of(Dependency.class, new ContextTest.TypeBinding.WithQualifier.NamedLiteral("ChoseOne")))))
+                when(context.get(eq(ComponentRef.of(Dependency.class, new NamedLiteral("ChoseOne")))))
                         .thenReturn(Optional.of(dependency));
             }
 
@@ -289,7 +289,7 @@ public class InjectionTest {
             public void should_include_dependency_with_qualifier() {
                 InjectionProvider<InjectField> provider = new InjectionProvider<>(InjectField.class);
                 assertArrayEquals(
-                        new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new ContextTest.TypeBinding.WithQualifier.NamedLiteral("ChoseOne"))},
+                        new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new NamedLiteral("ChoseOne"))},
                         provider.getDependencies().toArray());
             }
 
@@ -463,7 +463,7 @@ public class InjectionTest {
             @BeforeEach
             public void before() {
                 Mockito.reset(context);
-                when(context.get(eq(ComponentRef.of(Dependency.class, new ContextTest.TypeBinding.WithQualifier.NamedLiteral("ChoseOne")))))
+                when(context.get(eq(ComponentRef.of(Dependency.class, new NamedLiteral("ChoseOne")))))
                         .thenReturn(Optional.of(dependency));
             }
 
@@ -491,7 +491,7 @@ public class InjectionTest {
             public void should_include_dependency_with_qualifier() {
                 InjectionProvider<InjectMethod> provider = new InjectionProvider<>(InjectMethod.class);
                 assertArrayEquals(
-                        new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new ContextTest.TypeBinding.WithQualifier.NamedLiteral("ChoseOne"))},
+                        new ComponentRef<?>[]{ComponentRef.of(Dependency.class, new NamedLiteral("ChoseOne"))},
                         provider.getDependencies().toArray());
             }
 

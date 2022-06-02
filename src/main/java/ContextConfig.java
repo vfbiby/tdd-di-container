@@ -55,7 +55,7 @@ public class ContextConfig {
     }
 
     public void checkDependencies(Component component, Stack<Component> visiting) {
-        for (ComponentRef dependency : components.get(component).getDependencies()) {
+        for (ComponentRef<?> dependency : components.get(component).getDependencies()) {
             if (!components.containsKey(dependency.component()))
                 throw new DependencyNotFoundException(dependency.component(), component);
             if (!dependency.isContainer()) {
@@ -70,7 +70,7 @@ public class ContextConfig {
     interface ComponentProvider<T> {
         T get(Context context);
 
-        default List<ComponentRef> getDependencies() {
+        default List<ComponentRef<?>> getDependencies() {
             return List.of();
         }
 
